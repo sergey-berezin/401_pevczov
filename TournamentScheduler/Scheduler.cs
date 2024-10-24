@@ -10,7 +10,7 @@ namespace TournamentScheduler
         private readonly int R; // Количество туров
         private readonly int K; // Количество площадок
         private readonly Random random;
- 
+
         public Scheduler(int n, int r, int k)
         {
             N = n;
@@ -19,58 +19,59 @@ namespace TournamentScheduler
             random = new Random();
         }
 
-        public int[,] GenerateSchedule()
+        public int[,] GenerateSchedule(int maxGenerations, CancellationToken token, Action<int, int, int[,]> curSterItems)
         {
             // Создание начальной популяции
             var population = new List<int[,]>();
-            for (int i = 0; i < 100; i++)
-            {
-                population.Add(CreateRandomSchedule());
-            }
+            var lockObj = new object(); // Объект для блокировки
 
-            for (int generation = 0; generation < 1000; generation++)
+            Parallel.For(0, 100, i =>
             {
-                // Оценка приспособленности каждой хромосомы (расписания)
-                var fitnessScores = population.Select(CalculateFitness).ToArray();
+                var schedule = CreateRandomSchedule();
+
+                // Блокировка для потокобезопасного добавления в список
+                lock (lockObj)
+                {
+                    population.Add(schedule);
+                }
+            });
+            var best_fit = 0;
+
+            for (int generation = 0; generation < maxGenerations; generation++)
+            {
+                // Оценка приспособленности каждой хромосомы (расписания) с использованием параллелизма
+                var fitnessScores = new int[population.Count];
+                Parallel.For(0, population.Count, i =>
+                {
+                    fitnessScores[i] = CalculateFitness(population[i]);
+                });
 
                 // Селекция: отбор лучших решений
                 var selected = SelectBestSchedules(population, fitnessScores);
 
                 var bestSolution = selected.OrderByDescending(CalculateFitness).First();
-                Console.Write($"Поколение № {generation+1} \n");
-                for (int r = 0; r < R; r++)
+
+                if (token.IsCancellationRequested)
                 {
-                    Console.Write($"--------------------------------------------Тур {r + 1}--------------------------------------------\n");
-                    for (int n = 0; n < N; n++)
-                    {
-                        if (bestSolution[r, n] == 0)
-                        {
-                            Console.Write($"Участник {n + 1} отдыхает \n");
-                        }
-                        else
-                        {
-                            Console.Write($"Участник {n + 1} на площадке {bestSolution[r, n]}\n");
-                        }
-                    }
-                    Console.WriteLine();
+                    return bestSolution;
                 }
+
+                var fit = CalculateFitness(bestSolution);
+                curSterItems(generation + 1, fit, bestSolution);
+
+                if (fit > best_fit) { best_fit = fit; }
 
                 // Кроссовер и мутации для создания новой популяции
                 var newPopulation = GenerateNewPopulation(selected);
 
                 // Обновляем популяцию
                 population = newPopulation;
-
-                if (Console.KeyAvailable)
-                {
-                    Console.ReadKey();
-                    return bestSolution;
-                }
             }
 
             // Возвращаем лучшее расписание
             return population.OrderByDescending(CalculateFitness).First();
         }
+
 
         private int[,] CreateRandomSchedule()
         {
@@ -80,7 +81,7 @@ namespace TournamentScheduler
                 // Список участников
                 var participants = Enumerable.Range(0, N).ToList();
                 Shuffle(participants); // Перемешиваем участников для случайного распределения по парам
-                var availableVenues = Enumerable.Range(1, K+1).ToList();
+                var availableVenues = Enumerable.Range(1, K + 1).ToList();
                 // Распределяем пары по площадкам
                 for (int i = 0; i < N / 2; i++)
                 {
@@ -144,6 +145,7 @@ namespace TournamentScheduler
                 foreach (var playersOnVenue in venueToPlayers.Values)
                 {
                     // Для каждого игрока на площадке добавляем всех остальных игроков с этой площадки в соперники
+
                     foreach (var player in playersOnVenue)
                     {
                         foreach (var opponent in playersOnVenue)
@@ -201,7 +203,7 @@ namespace TournamentScheduler
 
             return newPopulation;
         }
-        
+
         private int[,] Crossover(int[,] parent1, int[,] parent2)
         {
             int[,] child = new int[R, N];
@@ -221,18 +223,21 @@ namespace TournamentScheduler
 
             return child;
         }
-        
+
 
         private void Mutate(int[,] child)
         {
             for (int r = 0; r < R; r++)
             {
-                if(random.NextDouble() < 0.1) // 10% шанс мутации поменять площадки местами
+                if (random.NextDouble() < 0.1) // 10% шанс мутации поменять площадки местами
                 {
                     int i1 = random.Next(N);
                     int i2 = 0;
-                    while (child[r, i1] != 0) i1 = random.Next(N);
-                    for(int j = 0; j < N; j++)
+                    while (child[r, i1] != 0)
+                    {
+                        i1 = random.Next(N);
+                    }
+                    for (int j = 0; j < N; j++)
                     {
                         if (child[r, j] == child[r, i1])
                         {
@@ -241,8 +246,8 @@ namespace TournamentScheduler
                     }
                     int i3 = random.Next(N);
                     int i4 = 0;
-                    while (child[r,i3] != 0 && child[r, i3] != child[r, i1]) i3 = random.Next(N);
-                    for(int j = 0; j < N; ++j)
+                    while (child[r, i3] != 0 && child[r, i3] != child[r, i1]) i3 = random.Next(N);
+                    for (int j = 0; j < N; ++j)
                     {
                         if (child[r, j] == child[r, i3])
                         {
@@ -250,10 +255,10 @@ namespace TournamentScheduler
                         }
                     }
                     int t = child[r, i1];
-                    child[r,i1] = child[r, i3];
-                    child[r,i2] = child[r,i4];
+                    child[r, i1] = child[r, i3];
+                    child[r, i2] = child[r, i4];
 
-                    child[r,i4] = t;
+                    child[r, i4] = t;
                     child[r, i3] = t;
                 }
             }
