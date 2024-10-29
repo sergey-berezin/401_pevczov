@@ -14,16 +14,11 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using TournamentScheduler;
+using static System.Net.Mime.MediaTypeNames;
 
 
 namespace wpfStadium
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
-    /// 
-
-
     public partial class MainWindow : Window
     {
 
@@ -39,26 +34,70 @@ namespace wpfStadium
 
             int R = bestSolution.GetLength(0); // Количество туров
             int N = bestSolution.GetLength(1); // Количество участников
+            int numOfCourts = 0;
+
+            // Сначала определим количество площадок
+            for (int r = 0; r < R; r++)
+            {
+                for (int n = 0; n < N; n++)
+                {
+                    if (bestSolution[r, n] > numOfCourts)
+                    {
+                        numOfCourts = bestSolution[r, n];
+                    }
+                }
+            }
+            var strlen = 12;
+            // Добавляем заголовок таблицы
+            string header = "Тур \\| " + string.Join("|", Enumerable.Range(1, numOfCourts).Select(c => $" П{c} ".PadLeft(strlen)));
+            listBoxResults.Items.Add(header);
+            listBoxResults.Items.Add(new string('-', header.Length)); // Разделительная линия
+
 
             for (int r = 0; r < R; r++)
             {
-                listBoxResults.Items.Add($"-------------------------------------------- Тур {r + 1} --------------------------------------------");
+                // Создаем строку для текущего тура
+                var row = new List<string> { $"Тур {r + 1}" };
 
-                for (int n = 0; n < N; n++)
+                for (int c = 1; c <= numOfCourts; c++)
                 {
-                    if (bestSolution[r, n] == 0)
+                    // Ищем участников для текущей площадки
+                    var participants = new List<string>();
+                    for (int n = 0; n < N; n++)
                     {
-                        listBoxResults.Items.Add($"Участник {n + 1} отдыхает");
+                        if (bestSolution[r, n] == c)
+                        {
+                            participants.Add($" {n + 1} ");
+                        }
+                    }
+
+                    // Если нет участников, указываем, что площадка пустая
+                    if (participants.Count == 0)
+                    {
+                        row.Add(("  _  ").PadLeft(strlen + 2, ' '));
                     }
                     else
                     {
-                        listBoxResults.Items.Add($"Участник {n + 1} на площадке {bestSolution[r, n]}");
+                        row.Add(string.Join(",", participants).PadLeft(strlen));
                     }
                 }
 
-                listBoxResults.Items.Add(""); // Добавляем пустую строку для разделения туров
+                // Добавляем строку тура в ListBox
+                listBoxResults.Items.Add(string.Join("|", row));
             }
         }
+
+        // Метод для центрирования текста с учетом паддинга
+        private string CenterText(string text, int width)
+        {
+            if (text.Length >= width) return text;
+
+            int padding = (width - text.Length) / 2 + 1;
+            return text.PadLeft(text.Length + padding).PadRight(width);
+        }
+
+
+
 
         private async void StartButton_Click(object sender, RoutedEventArgs e)
         {
@@ -71,7 +110,7 @@ namespace wpfStadium
             {
                 await Task.Factory.StartNew(() =>
                 {
-                   RunGeneticAlgorithm(N, M, K, cancellationTokenSource.Token);
+                    RunGeneticAlgorithm(N, M, K, cancellationTokenSource.Token);
                 }, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
             }
             finally
@@ -82,51 +121,25 @@ namespace wpfStadium
         private void RunGeneticAlgorithm(int N, int R, int K, CancellationToken token)
         {
             Scheduler scheduler = new Scheduler(N, R, K);
-            //int[,] bestSchedule = scheduler.GenerateSchedule();
-            //var geneticAlgorithm = new GeneticAlgorithm();
-            // Инициализация популяции
-            //geneticAlgorithm.InitializePopulation(100, side1, side2, side3);
-            // Ограничение на число поколений
-            int[,] bestSolution = scheduler.GenerateSchedule(10000, token, (generation, bestFitness, bestSolution) =>
+            int[,] bestSolution = scheduler.GenerateSchedule(100, token, (generation, bestFitness, bestSolution) =>
             {
                 Dispatcher.Invoke(() =>
                 {
                     ProgressTextBlock.Text = $"{generation}";
                     BestMetricTextBlock.Text = $"{bestFitness}";
-                    //listBoxResults.Items.Add($"-------------------------------------------- Тур {1} --------------------------------------------");
-                    /*listBoxResults.Items.Clear(); // Очищаем предыдущие результаты
-
-                    int R = bestSolution.GetLength(0); // Количество туров
-                    int N = bestSolution.GetLength(1); // Количество участников
-
-                    for (int r = 0; r < R; r++)
-                    {
-                        listBoxResults.Items.Add($"-------------------------------------------- Тур {r + 1} --------------------------------------------");
-
-                        for (int n = 0; n < N; n++)
-                        {
-                            if (bestSolution[r, n] == 0)
-                            {
-                                listBoxResults.Items.Add($"Участник {n + 1} отдыхает");
-                            }
-                            else
-                            {
-                                listBoxResults.Items.Add($"Участник {n + 1} на площадке {bestSolution[r, n]}");
-                            }
-                        }
-
-                        listBoxResults.Items.Add(""); // Добавляем пустую строку для разделения туров
-                    } */
                     listBoxResults.Items.Clear();
                     DisplayResults(bestSolution);
                 });
             });
         }
-        
+
 
         private void StopButton_Click(object sender, RoutedEventArgs e)
         {
-            cancellationTokenSource?.Cancel();
+            if (cancellationTokenSource != null && !cancellationTokenSource.IsCancellationRequested)
+            {
+                cancellationTokenSource.Cancel();
+            }
         }
 
         private void ClearButton_Click(object sender, RoutedEventArgs e)
