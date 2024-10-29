@@ -8,7 +8,7 @@
     <UseWPF>true</UseWPF>
   </PropertyGroup>
    <ItemGroup>
-    <PackageReference Include="Tyoma.Package" Version="1.0.16" />
+    <PackageReference Include="Tyoma.Package" Version="1.0.19" />
   </ItemGroup>
 
 </Project>
