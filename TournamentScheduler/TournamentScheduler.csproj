@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>Tyoma.Package</PackageId>
-    <Version>1.0.3</Version>
+    <Version>1.0.19</Version>
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
