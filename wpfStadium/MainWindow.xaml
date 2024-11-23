@@ -25,9 +25,16 @@
         <TextBlock Name="BestMetricTextBlock" HorizontalAlignment="Left" VerticalAlignment="Top" Grid.Row="1" Grid.Column="1" Margin="490,24,0,0" Width="91" Height="17"/>
 
 
-        <Button Content="Старт" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,302,0,0" Width="50" Click="StartButton_Click" Height="20"/>
-        <Button Name="PauseButton" Content="Стоп" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,336,0,0" Width="50" Click="StopButton_Click" Height="20" Grid.RowSpan="2"/>
-        <Button Content="Очистка" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,267,0,0" Width="50" Click="ClearButton_Click"/>
+        <Button Content="Старт" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,302,0,0" Width="80" Click="StartButton_Click" Height="20"/>
+        <Button Name="PauseButton" Content="Стоп" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,336,0,0" Width="80" Click="StopButton_Click" Height="20" Grid.RowSpan="2"/>
+        <Button Content="Очистка" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,267,0,0" Width="80" Click="ClearButton_Click"/>
+        <Button Content="Сохранить" 
+        HorizontalAlignment="Center" 
+        VerticalAlignment="Top" 
+        Width="80" 
+        Height="18" 
+        Click="SaveButton_Click" Margin="0,235,0,0"/>
+
         <Label Content="Информация о  турнире" HorizontalAlignment="Left" VerticalAlignment="Top" Height="32" Width="176" Grid.Column="1" Margin="212,10,0,0"/>
         <Label Content="N участников" HorizontalAlignment="Left" Margin="2,39,0,0" VerticalAlignment="Top" Height="26" Width="88" RenderTransformOrigin="0.235,0.502"/>
         <Label Content="M туров" HorizontalAlignment="Center" Margin="0,100,0,0" VerticalAlignment="Top" Height="26" Width="88"/>
@@ -40,7 +47,20 @@
 
 
         <TextBox Text="6" Name="KRead" Width="90" HorizontalAlignment="Center" Margin="0,190,0,0" VerticalAlignment="Top"  PreviewTextInput="textBox_PreviewTextInput" />
+        <ComboBox Name="SaveComboBox" 
+          Width="200" 
+          Height="30" 
+          HorizontalAlignment="Left" 
+          VerticalAlignment="Top" 
+          SelectionChanged="SaveComboBox_SelectionChanged" Grid.ColumnSpan="2" Margin="25,44,0,0" Grid.Row="1" />
 
+        <Button Content="Очистить базу данных" 
+        Width="135" 
+        Height="30" 
+        HorizontalAlignment="Left" 
+        VerticalAlignment="Top" 
+        Margin="180,44,0,0"
+        Click="ClearDatabaseButton_Click" Grid.Column="1" Grid.Row="1" />
 
     </Grid>
 </Window>

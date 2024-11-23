@@ -21,12 +21,15 @@ namespace TournamentScheduler
             random = new Random();
         }
 
-        public int[,] GenerateSchedule(int maxGenerations, CancellationToken token, Action<int, int, int[,]> curSterItems)
+        
+        public int[,] GenerateSchedule(
+            int maxGenerations,
+            CancellationToken token,
+            Action<int, int, int[,], int[][,]> curSterItems)
         {
-            // Создание начальной популяции как массива из 100 элементов, где каждый элемент - это двумерный массив int[,]
+            // Создание начальной популяции
             int[][,] population = new int[100][,];
 
-            // Инициализируем начальную популяцию параллельно
             Parallel.For(0, 100, i =>
             {
                 population[i] = CreateRandomSchedule();
@@ -37,16 +40,15 @@ namespace TournamentScheduler
 
             for (int generation = 0; generation < maxGenerations; generation++)
             {
-                // Оценка приспособленности для каждого расписания
+                // Оценка приспособленности
                 var fitnessScores = new int[population.Length];
                 Parallel.For(0, population.Length, i =>
                 {
                     fitnessScores[i] = CalculateFitness(population[i]);
                 });
 
-                // Селекция: отбор лучших решений
+                // Селекция
                 var selected = SelectBestSchedules(population, fitnessScores);
-
                 bestSolution = selected.OrderByDescending(CalculateFitness).First();
 
                 if (token.IsCancellationRequested)
@@ -55,15 +57,19 @@ namespace TournamentScheduler
                 }
 
                 var fit = CalculateFitness(bestSolution);
-                curSterItems(generation + 1, fit, bestSolution);
 
-                if (fit > best_fit) { best_fit = fit; }
+                // Передаем текущую популяцию и лучшую особь в обработчик
+                curSterItems(generation + 1, fit, bestSolution, population);
 
-                // Кроссовер и мутации для создания новой популяции
+                if (fit > best_fit)
+                {
+                    best_fit = fit;
+                }
+
+                // Кроссовер и мутация
                 population = GenerateNewPopulation(selected);
             }
 
-            // Возвращаем лучшее расписание
             return bestSolution;
         }
 
